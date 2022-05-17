@@ -1,0 +1,22 @@
+{
+  "name": "jest-failfast",
+  "version": "1.0.0",
+  "main": "jest-environment-fail-fast-2.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "jest",
+    "jest-environment"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/jest": "^27.5.1",
+    "babel-jest": "^28.1.0",
+    "jest": "^28.1.0",
+    "ts-jest": "^28.0.2",
+    "ts-node": "^10.7.0"
+  }
+}
