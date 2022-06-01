@@ -179,7 +179,8 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 				 * If so, we skip the current test.
 				 */
 				if (event.test.invocations == 1) {
-					console.error(`${this.configuration.enableFailFast}, ${this.lastFailed}`);
+					console.error(`Should skip at first failed test: ${this.configuration.enableFailFast} / Has failed: ${this.lastFailed}`);
+
 					/**
 					 * If at least one test has failed, skip all the tests inside the whole test suite.
 					 */
