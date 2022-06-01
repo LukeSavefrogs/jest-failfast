@@ -1,4 +1,3 @@
-
 /**
  * This tells Jest to use our custom Environment for this specific file.
  * 
@@ -10,7 +9,7 @@ describe("Multiple levels of nesting", () => {
 		expect(true).toBe(true);
 	})
 
-	describe("Two different scopes of failures", () => {
+	describe("Should skip from the second test on", () => {
 		it("should succeed", async () => {
 			expect(true).toBe(true);
 		})
