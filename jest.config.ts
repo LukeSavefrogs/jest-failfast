@@ -6,9 +6,9 @@ const config: Config.InitialOptions = {
 	noStackTrace: true,
 	testEnvironment: "<rootDir>/src/jest-environment.js",
 	testRunner: "jest-circus/runner",
-	testEnvironmentOptions: {
-		"enableFailFast": true
-	},
+	// testEnvironmentOptions: {
+	// 	"enableFailFast": true
+	// },
 	transform: {
 		"\\.[jt]sx?$": "babel-jest",
 	},
