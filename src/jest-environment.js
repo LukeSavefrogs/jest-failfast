@@ -1,7 +1,7 @@
 /*  
 *************************************************************************
 
-	Source:
+	Sources:
 		- https://github.com/smooth-code/jest-puppeteer
 		- https://stackoverflow.com/a/65904327/8965861
 
