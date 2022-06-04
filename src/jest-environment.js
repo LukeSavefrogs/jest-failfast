@@ -7,16 +7,67 @@
 
 *************************************************************************
 */
+
+/**
+ * Jest default Environment that will be extended with custom functionality.
+ */
 const NodeEnvironment = require('jest-environment-node').default;
 
+/**
+ * This is the default Configuration that will be used by this Test Environment if it is not provided otherwise.
+ * 
+ * You can override this in 2 ways:
+ * 
+ * 1) By providing a valid configuration object in the `testEnvironmentOptions` property of the `jest.config.js` file.  
+ *    Example: 
+ * ```
+ *     module.exports = {
+ *         verbose: true,
+ *         noStackTrace: true,
+ *         testEnvironment: "<rootDir>/src/jest-environment.js",
+ *         testEnvironmentOptions: {
+ *             "enableFailFast": true,
+ *             "global": false
+ *         }
+ *     };
+ *```
+ * 2) By providing a valid configuration object in the docblock at the very start of the test file (remove the backslash in the comment).  
+ *    Example: 
+ * ```
+ *     /**
+ *      * This tells Jest to use our custom Environment for this specific file.
+ *      * 
+ *      * @jest-environment <rootDir>/src/jest-environment.js
+ *      * @jest-environment-options { "failFast": {"enabled": true, "global": true} }
+ *     *\/
+ *     describe("Start test", () => {});
+ *```
+ */
 const DEFAULT_CONFIGURATION = {
 	/**
-	 * If set to `true`, the test will fail as soon as a test fails.
-	 * @type {boolean}
+	 * Increases the verbosity of the output, allowing more debug information to be displayed.
 	 */
-	enableFailFast: false,
+	verbose: false,
+	failFast: {
+		/**
+		 * If set to `true`, the test will fail as soon as a test fails.
+		 * @type {boolean}
+		 */
+		enabled: false,
+			
+		/**
+		 * If set to `true`, a test failure will cause the entire test suite to fail.
+		 * 
+		 * Has effect only when `failFast.enabled` is `true`.
+		 * @type {boolean}
+		 */
+		global: true,
+	}
 }
 
+/**
+ * Custom Node Environment that will be used by Jest to run the tests.
+ */
 class NodeEnvironmentFailFast extends NodeEnvironment {
 	constructor(config, context) {
 		super(config, context);
@@ -31,14 +82,15 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 
 		// console.log(`Global Config: ${JSON.stringify(config?.globalConfig, null, 4)}`);
 		// console.log(`Project Config: ${JSON.stringify(config?.projectConfig, null, 4)}`);
-		console.log(`Environment Config: ${JSON.stringify(config?.projectConfig?.testEnvironmentOptions, null, 4)}`);
-		// console.log(`Context: ${JSON.stringify(context, null, 4)}`);
-		console.log(`TestPath: ${JSON.stringify(this.testPath, null, 4)}`);
-		console.log(`DocblockPragmas: ${JSON.stringify(this.docblockPragmas, null, 4)}`);
+		// console.log(`Environment Config: ${JSON.stringify(config?.projectConfig?.testEnvironmentOptions, null, 4)}`);
+		// console.log(`TestPath: ${JSON.stringify(this.testPath, null, 4)}`);
+		// console.log(`DocblockPragmas: ${JSON.stringify(this.docblockPragmas, null, 4)}`);
 	}
 	
+	/**
+	 * @type {Function[]}
+	 */
 	registeredEventHandler = [];
-	verbose = false;
 
 	lastFailed = false;
 
@@ -75,13 +127,14 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 	}
 
 
+	/**
+	 * @deprecated Use `testEnvironment.markBlockAsOptional()` instead.
+	 * 
+	 * @param {Number} depth Depth of the current describe block (gets converted to boolean, so it is sufficient that it's higher than 0).
+	 */
 	setSkipLevel(depth = 0) {
-		console.log(`Setting skip level to ${!!depth} (CurrentDepth: ${this.currentDescribeDepth})`);
-
-		// If we are going to set the scope to block, we need to skip if there is already an error.
-		// Otherwise The checks will still be done even if there was already an error.
-		// if (depth != 0 && this.lastFailed)
-		// 	return;
+		if (this.configuration.verbose)
+			console.log(`Setting skip level to ${!!depth} (CurrentDepth: ${this.currentDescribeDepth})`);
 
 		/**
 		 * Imposto il livello a 0 o alla profondità corrente.
@@ -89,9 +142,23 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 		this.describeFailureDepthThreshold = (depth == 0) ? 0 : this.currentDescribeDepth;
 	}
 
+	/**
+	 * Marks the current block as optional.
+	 * This means that if the block fails, it will not make the entire test suite fail as well.
+	 */
+	markBlockAsOptional() {
+		if (this.configuration.verbose)
+			console.log(`Setting current block as OPTIONAL (CurrentDepth: ${this.currentDescribeDepth})`);
+
+		/**
+		 * 
+		 */
+		this.describeFailureDepthThreshold = this.currentDescribeDepth;
+	}
+
 
 	setVerbose(verbose = false) {
-		this.verbose = !!verbose;
+		this.configuration.verbose = !!verbose;
 	}
 
 	async executeTestEventHandlers(event, state) {
@@ -115,26 +182,30 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 				break;
 
 			case 'run_describe_finish':
+				this.currentDescribeDepth--;
+
 				/**
-				 * If this is the end of a scoped block, we need to reset the scope.
+				 * If this is the end of a scoped block, we need to reset the errors so that they are not 
+				 * propagated outside of the scope.
 				 */
 				if (this.currentDescribeDepth < this.describeFailureDepthThreshold) {
 					this.describeFailureDepthThreshold = 0;
+					this.failedDescribeDepth = 0;
+					this.lastFailed = false;
 				}
 
 				/**
 				 * If this is the end of a block that caused a failure, reset the FAILURE depth.
 				 */
-				if (this.currentDescribeDepth <= this.failedDescribeDepth) {
+				if (this.currentDescribeDepth < this.failedDescribeDepth) {
 					this.failedDescribeDepth = 0;
 				}
 	
 
-				this.currentDescribeDepth--;
 				break;
 
 			case 'test_skip':
-				if (this.verbose) 
+				if (this.configuration.verbose)
 					console.error(`[SKIPPED ] ${event.test?.parent?.name} > ${event.test?.name}`)
 				break;
 			case "hook_failure": {
@@ -144,12 +215,12 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 				this.lastFailed = true;
 
 				// hook errors are not displayed if tests are skipped, so display them manually
-				if (this.verbose) 
+				if (this.configuration.verbose) 
 					console.error(`ERROR: ${describeBlockName} > ${event.hook.type}\n\n`, event.error, "\n");
 				break;
 			}
 			case "test_fn_failure": {
-				if (this.verbose) {
+				if (this.configuration.verbose) {
 					console.error(`[FAILED  ] ${event.test?.parent?.name} > ${event.test?.name} (${event.test?.errors})`)
 					console.error(event.errors);
 				}
@@ -172,34 +243,47 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 			}
 			case "test_start": {
 				if (event.test?.mode != "skip") 
-					if (this.verbose) console.error(`[Starting] ${event.test?.parent?.name} > ${event.test?.name}`);
+					if (this.configuration.verbose) console.error(`[Starting] ${event.test?.parent?.name} > ${event.test?.name}`);
 
 				/**
 				 * If this is the first run of the test, we check if the previous failed.
 				 * If so, we skip the current test.
 				 */
-				if (event.test.invocations == 1) {
-					console.error(`Should skip at first failed test: ${this.configuration.enableFailFast} / Has failed: ${this.lastFailed}`);
+				if (event.test.invocations == 1 && this.configuration.failFast.enabled) {
+					/**
+					 * If a lock has been scoped through the `testEnvironment.setSkipLevel()` method,
+					 * we need to check if the current test is in the scope and if the current scope
+					 * has at least one failed test.
+					 * 
+					 * If so, we skip the test.
+					 */
+					if (this.describeFailureDepthThreshold > 0) {
+						if (this.failedDescribeDepth > 0 && this.currentDescribeDepth >= this.failedDescribeDepth && this.currentDescribeDepth >= this.describeFailureDepthThreshold) {
+							event.test.mode = "skip";
+							break;
+						}
+					}
 
 					/**
 					 * If at least one test has failed, skip all the tests inside the whole test suite.
 					 */
-					if (this.configuration.enableFailFast && this.lastFailed) {
+					if (this.configuration.failFast.global && this.lastFailed) {
 						event.test.mode = "skip";
 						break;
 					}
-					/* if (this.describeFailureDepthThreshold == 0 && this.lastFailed) {
-						event.test.mode = "skip";
-					} 
-					else*/ 
-					if (this.describeFailureDepthThreshold > 0 && this.failedDescribeDepth > 0) {
-						if (this.currentDescribeDepth >= this.failedDescribeDepth) {
-							event.test.mode = "skip";
+
+					if (!this.configuration.failFast.global) {
+						/**
+						 * Should fail only if the current test is inside a block that has failed.
+						 */
+						if (this.describeFailureDepthThreshold == 0) {
+							if (this.failedDescribeDepth > 0 && this.currentDescribeDepth >= this.failedDescribeDepth) {
+								event.test.mode = "skip";
+								break;
+							}
 						}
 					}
 				}
-
-				
 				break;
 			}
 		}
