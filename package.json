@@ -1,7 +1,8 @@
 {
   "name": "jest-failfast",
-  "version": "1.0.0",
-  "main": "jest-environment-fail-fast-2.js",
+  "description": "Small package that allows Jest tests to fail in a more predictable way",
+  "version": "1.2.0",
+  "main": "src/jest-environment.js",
   "scripts": {
     "test": "jest"
   },
@@ -9,9 +10,13 @@
     "jest",
     "jest-environment"
   ],
-  "author": "",
+  "author": "Luca Salvarani <lucasalvarani99@gmail.com> (https://github.com/LukeSavefrogs)",
+  "repository": "github:LukeSavefrogs/jest-failfast",
+  "bugs": {
+    "url": "https://github.com/LukeSavefrogs/jest-failfast/issues",
+    "email": "lucasalvarani99@gmail.com"
+  },
   "license": "ISC",
-  "description": "",
   "devDependencies": {
     "@types/jest": "^27.5.1",
     "babel-jest": "^28.1.0",
