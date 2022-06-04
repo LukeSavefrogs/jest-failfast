@@ -4,8 +4,8 @@ import type {Config} from '@jest/types';
 const config: Config.InitialOptions = {
 	verbose: true,
 	noStackTrace: true,
-	testEnvironment: "<rootDir>/src/jest-environment.js",
 	testRunner: "jest-circus/runner",
+	testEnvironment: "<rootDir>/src/jest-environment.js",
 	// testEnvironmentOptions: {
 	// 	"enableFailFast": true
 	// },
