@@ -3,7 +3,7 @@
  * This tells Jest to use our custom Environment for this specific file.
  * 
  * @jest-environment <rootDir>/src/jest-environment.js
- * @jest-environment-options {"enableFailFast": true}
+ * @jest-environment-options { "failFast": {"enabled": true, "global": false} }
  */
 describe("Multiple levels of nesting", () => {
 	it("should succeed", async () => {
