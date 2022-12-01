@@ -2,8 +2,12 @@
 /**
  * This tells Jest to use our custom Environment for this specific file.
  * 
+ * EXPECTED BEHAVIOUR:
+ *     - Failed tests will cause to fail only the parent `describe`.
+ *     - Siblings tests will be skipped.
+ * 
  * @jest-environment <rootDir>/src/jest-environment.js
- * @jest-environment-options { "failFast": {"enabled": true, "global": false} }
+ * @jest-environment-options { "failFast": {"enabled": true, "scope": "block"} }
  */
 describe("Multiple levels of nesting", () => {
 	it("should succeed", async () => {

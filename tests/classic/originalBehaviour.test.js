@@ -1,3 +1,9 @@
+/**
+ * This test will retain the default Jest behaviour.
+ * 
+ * EXPECTED RESULT:
+ *     The failed tests will have NO impact on other tests.
+ */
 describe("First describe", () => {
 	it("should succeed", async () => {
 		expect(true).toBe(true);
