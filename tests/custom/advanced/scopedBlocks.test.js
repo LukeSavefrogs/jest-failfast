@@ -1,4 +1,3 @@
-
 /**
  * This tells Jest to use our custom Environment for this specific file.
  * 
