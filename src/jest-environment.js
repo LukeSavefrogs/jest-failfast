@@ -27,7 +27,7 @@ const NodeEnvironment = require('jest-environment-node').default;
  *         testEnvironment: "<rootDir>/src/jest-environment.js",
  *         testEnvironmentOptions: {
  *             "enableFailFast": true,
- *             "global": false
+ *             "scope": "global"
  *         }
  *     };
  *```
@@ -38,7 +38,7 @@ const NodeEnvironment = require('jest-environment-node').default;
  *      * This tells Jest to use our custom Environment for this specific file.
  *      * 
  *      * @jest-environment <rootDir>/src/jest-environment.js
- *      * @jest-environment-options { "failFast": {"enabled": true, "global": true} }
+ *      * @jest-environment-options { "failFast": {"enabled": true, "scope": "global"} }
  *     *\/
  *     describe("Start test", () => {});
  *```
@@ -56,12 +56,12 @@ const DEFAULT_CONFIGURATION = {
 		enabled: false,
 			
 		/**
-		 * If set to `true`, a test failure will cause the entire test suite to fail.
+		 * If set to `global`, a test failure will cause the entire test suite to fail.
 		 * 
 		 * Has effect only when `failFast.enabled` is `true`.
-		 * @type {boolean}
+		 * @type {"global"|"block"}
 		 */
-		global: true,
+		scope: "global",
 	}
 }
 
@@ -79,7 +79,10 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 		 * @type {typeof DEFAULT_CONFIGURATION}
 		 */
 		this.configuration = Object.assign({}, DEFAULT_CONFIGURATION, config?.projectConfig?.testEnvironmentOptions);
-
+		
+		if (!["global", "block"].includes(this.configuration.failFast.scope)) {
+			throw new TypeError("FailFast scope configuration should be 'global' or 'block'. Check your code.")
+		}
 		// console.log(`Global Config: ${JSON.stringify(config?.globalConfig, null, 4)}`);
 		// console.log(`Project Config: ${JSON.stringify(config?.projectConfig, null, 4)}`);
 		// console.log(`Environment Config: ${JSON.stringify(config?.projectConfig?.testEnvironmentOptions, null, 4)}`);
@@ -267,12 +270,12 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 					/**
 					 * If at least one test has failed, skip all the tests inside the whole test suite.
 					 */
-					if (this.configuration.failFast.global && this.lastFailed) {
+					if (this.configuration.failFast.scope == "global" && this.lastFailed) {
 						event.test.mode = "skip";
 						break;
 					}
 
-					if (!this.configuration.failFast.global) {
+					if (this.configuration.failFast.scope == "block") {
 						/**
 						 * Should fail only if the current test is inside a block that has failed.
 						 */
