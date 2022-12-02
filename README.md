@@ -8,9 +8,22 @@
 ## Description
 This package allows to have more control over the way Jest handles failed tests.
 
+It has been inspired by [**Jest Environment Steps**](https://www.npmjs.com/package/jest-environment-steps) and [**this S.O. answer**](https://stackoverflow.com/questions/51250006/jest-stop-test-suite-after-first-fail/65904327#65904327).
+
+Quoting from "Jest Environment Steps" > Overview:
+> "In Jest, all tests with in a describe block run sequentially in the order of their appearance. But if a tests fails, the next tests continue to execute.
+> 
+> For writing tests for a behaviour where each test depends on success of previous test, this built-in feature may cause unnecessory tests to run
+> 
+> Example of behaviour tests.
+>
+> Testing a CRUD apis on a database. Writing test for Create, Read, Update and Delete in the same sequence makes the it sense to test all apis in same order. and if Create fails, there is no pointing testing if the read, update and delete."
+
+Jest FailFast has the same functionality, and some more useful features. 
+
 ### Features
-- Global or block-scoped test failures
-- Mark `describe` block as optional (if a failure happens it does not propagate)
+- Global (as in [**Jest Environment Steps**](https://www.npmjs.com/package/jest-environment-steps)) or block-scoped test failures;
+- Mark `describe` blocks as optional (if a failure happens it does not propagate)
 
 
 ## Configuration
@@ -181,4 +194,4 @@ The up-to-date list of events can be found [here](https://github.com/facebook/je
 
 ## Sources
 - [This answer](https://stackoverflow.com/questions/51250006/jest-stop-test-suite-after-first-fail/65904327#65904327)
-- [This package](https://www.npmjs.com/package/jest-environment-steps)
+- [This package](https://www.npmjs.com/package/jest-environment-steps), which corresponds to this package with the `{ failFast: {enabled: true, scope: "global"} }` configuration.
