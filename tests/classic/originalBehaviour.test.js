@@ -31,7 +31,7 @@ describe("First describe", () => {
 		})
 	})
 
-	it("should succeed too", async () => {
+	it("should succeed", async () => {
 		expect(true).toBe(true);
 	})
 });
