@@ -67,18 +67,17 @@ const DEFAULT_CONFIGURATION = {
 
 /**
  * Custom Node Environment that will be used by Jest to run the tests.
+ * 
+ * @class NodeEnvironmentFailFast
+ * @classdesc Custom Node Environment that will be used by Jest to run the tests.
  */
 class NodeEnvironmentFailFast extends NodeEnvironment {
 	constructor(config, context) {
 		super(config, context);
-
+		
+		this.configuration = Object.assign({}, DEFAULT_CONFIGURATION, config?.projectConfig?.testEnvironmentOptions);
 		this.testPath = context.testPath;
 		this.docblockPragmas = context.docblockPragmas;
-
-		/**
-		 * @type {typeof DEFAULT_CONFIGURATION}
-		 */
-		this.configuration = Object.assign({}, DEFAULT_CONFIGURATION, config?.projectConfig?.testEnvironmentOptions);
 		
 		if (!["global", "block"].includes(this.configuration.failFast.scope)) {
 			throw new TypeError("FailFast scope configuration should be 'global' or 'block'. Check your code.")
@@ -91,14 +90,70 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 	}
 	
 	/**
-	 * @type {Function[]}
+	 * Current environment configuration.
+	 * 
+	 * @name NodeEnvironmentFailFast#configuration
+	 * @type {typeof DEFAULT_CONFIGURATION}
+	 */
+	configuration   = null;
+
+	/**
+	 * The path to the test being run.
+	 * 
+	 * @name NodeEnvironmentFailFast#testPath
+	 * @type {String}
+	 */
+	testPath        = null;
+
+	/**
+	 * @name NodeEnvironmentFailFast#docblockPragmas
+	 * @type {Object}
+	 * 
+	 */
+	docblockPragmas = null;
+
+	/**
+	 * Event handlers added by the `testEnvironment.registerTestEventHandler()` 
+	 * method.
+	 * 
+	 * These get executed before the default ones.
+	 * See `handleTestEvent()` method.
+	 * 
+	 * @name NodeEnvironmentFailFast#registeredEventHandler
+	 * @type {eventHandler[]}
 	 */
 	registeredEventHandler = [];
 
 	lastFailed = false;
 
+	/**
+	 * Counter keeping track of the `describe` blocks entered as the test 
+	 * goes on.
+	 * 
+	 * @name NodeEnvironmentFailFast#currentDescribeDepth
+	 * @type {Number}
+	 */
 	currentDescribeDepth = 0;
+
+	/**
+	 * The `describe` block depth at which the error was found.
+	 * 
+	 * @name NodeEnvironmentFailFast#failedDescribeDepth
+	 * @type {Number}
+	 */
 	failedDescribeDepth = 0;
+
+	/**
+	 * If set, contains the parent `describe` level that will be treated as
+	 * "optional".
+	 * If any error occurs inside it, it won't make the test suite fail.
+	 * 
+	 * Its value represents the `describe` block depth at which 
+	 * the `markBlockAsOptional()` method was fired.
+	 * 
+	 * @name describeFailureDepthThreshold#failedDescribeDepth
+	 * @type {Number}
+	 */
 	describeFailureDepthThreshold = 0;
 
 	async setup() {
@@ -111,13 +166,23 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 	}
 
 	/**
+	 * Event handler function passed to the `registerTestEventHandler()` method.
 	 * 
-	 * @param {Function} registeredEventHandler Function to be executed *before* any default handler. Check `event.name` to find out what event is being handled.
+	 * @callback eventHandler
+	 * @param {object} event
+	 * @param {object} state
+	*/
+
+	/**
+	 * Register a new Event Handler to the stack that will be executed
+	 * before the default handlers.
+	 * 
+	 * @param {eventHandler} registeredEventHandler Function to be executed *before* any default handler. Check `event.name` to find out what event is being handled.
 	 * 
 	 * @example
 	 * ```
 	 * // testEnvironment is globally available (see above NodeEnvironmentFailFast.setup)
-	 * testEnvironment.registerTestEventHandler(async (event) => {
+	 * testEnvironment.registerTestEventHandler(async (event, state) => {
 	 * 	if (event.name === "test_fn_failure") {
 	 * 		await takeScreenshot()
 	 * 	}
@@ -147,7 +212,11 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 
 	/**
 	 * Marks the current block as optional.
-	 * This means that if the block fails, it will not make the entire test suite fail as well.
+	 * 
+	 * If the marked block fails, it will not make the entire test suite fail as well,
+	 * even if `scope` is set to `global`.
+	 * 
+	 * @type {never}
 	 */
 	markBlockAsOptional() {
 		if (this.configuration.verbose)
@@ -159,8 +228,19 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 		this.describeFailureDepthThreshold = this.currentDescribeDepth;
 	}
 
-
-	setVerbose(verbose = false) {
+	/**
+	 * Enables or disables a more verbose output.
+	 * Overrides the `verbose` set in the configuration.
+	 * 
+	 * Note that this MAY interfere with Jest's output, so use only if strictly 
+	 * necessary. 
+	 * 
+	 * This should be used only when developing directly on the Environment, as in the case 
+	 * of new features.
+	 * 
+	 * @param {Boolean} verbose Pass `true` to increase verbosity, `false` to decrease it.
+	 */
+	setVerbose(verbose = true) {
 		this.configuration.verbose = !!verbose;
 	}
 
@@ -170,6 +250,12 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 		}
 	}
 
+	/**
+	 * Method used to customize the way Jest handles events.
+	 * 
+	 * @param {*} event Event object
+	 * @param {*} state State object
+	 */
 	async handleTestEvent(event, state) {
 		await this.executeTestEventHandlers(event, state);
 
@@ -291,16 +377,17 @@ class NodeEnvironmentFailFast extends NodeEnvironment {
 			}
 		}
 
-		if (["run_describe_start", "run_describe_finish", "test_fn_failure", "test_fn_success", "test_start"].includes(event.name)) {
-			// console.log(`\n`);
-			// console.log(`=======================================================`);
-			// console.log(`    Event Name   : ${event.name} ${event.test?.name ? ` (${event.test.name})` : (event.describeBlock?.name ? ` (${event.describeBlock.name})` : '')}`);
-			// console.log(`    Current Depth: ${this.currentDescribeDepth}`);
-			// console.log(`    Failure Depth: ${this.failedDescribeDepth}`);
-			// console.log(`    Thresh. Depth: ${this.describeFailureDepthThreshold}`);
-			// console.log(`=======================================================`);
-			// console.log(`\n`);
-		}
+		// Additionally, we can print an header when running in verbose mode
+		// if (this.configuration.verbose && ["run_describe_start", "run_describe_finish", "test_fn_failure", "test_fn_success", "test_start"].includes(event.name)) {
+		// 	console.log(`\n`);
+		// 	console.log(`=======================================================`);
+		// 	console.log(`    Event Name   : ${event.name} ${event.test?.name ? ` (${event.test.name})` : (event.describeBlock?.name ? ` (${event.describeBlock.name})` : '')}`);
+		// 	console.log(`    Current Depth: ${this.currentDescribeDepth}`);
+		// 	console.log(`    Failure Depth: ${this.failedDescribeDepth}`);
+		// 	console.log(`    Thresh. Depth: ${this.describeFailureDepthThreshold}`);
+		// 	console.log(`=======================================================`);
+		// 	console.log(`\n`);
+		// }
 
 		if (super.handleTestEvent) {
 			super.handleTestEvent(event, state);
